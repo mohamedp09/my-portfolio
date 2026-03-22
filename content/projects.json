@@ -1,0 +1,80 @@
+[
+  {
+    "id": "1",
+    "title": "Telegram AI Bot SaaS Template",
+    "description": "Full-stack Telegram bot template with OpenAI GPT-4o-mini, admin panel, and SQLite.",
+    "longDescription": "A production-ready Telegram bot template that integrates OpenAI, Telegraf, and SQLite so you can deploy a monetizable bot fast.",
+    "tags": [
+      "Node.js",
+      "TypeScript",
+      "OpenAI",
+      "SQLite",
+      "Telegram"
+    ],
+    "image": "",
+    "liveUrl": "https://mohamedp2.gumroad.com",
+    "githubUrl": "https://github.com/mohamedp09",
+    "status": "launched",
+    "featured": true,
+    "date": "2026-02-15",
+    "order": 1
+  },
+  {
+    "id": "2",
+    "title": "Cursor Rules Pack for Node.js + TypeScript",
+    "description": "Professional Cursor AI rules for Node.js + TypeScript projects.",
+    "longDescription": "Curated Cursor rules for Node.js and TypeScript backends — structure, testing hints, and DX defaults.",
+    "tags": [
+      "Cursor AI",
+      "Node.js",
+      "TypeScript",
+      "DX",
+      "Productivity"
+    ],
+    "image": "",
+    "liveUrl": "https://mohamedp2.gumroad.com",
+    "githubUrl": "https://github.com/mohamedp09",
+    "status": "launched",
+    "featured": true,
+    "date": "2026-03-01",
+    "order": 2
+  },
+  {
+    "id": "3",
+    "title": "Incident Brief",
+    "description": "Converts raw system logs into concise incident updates for teams.",
+    "longDescription": "A Next.js tool that turns logs and errors into clear briefs for Slack or tickets.",
+    "tags": [
+      "Next.js",
+      "AI",
+      "DevOps",
+      "SaaS"
+    ],
+    "image": "",
+    "liveUrl": "",
+    "githubUrl": "",
+    "status": "building",
+    "featured": false,
+    "date": "2026-03-15",
+    "order": 3
+  },
+  {
+    "id": "4",
+    "title": "Personal Portfolio & Blog",
+    "description": "This site — Next.js portfolio with blog, CMS, and admin.",
+    "longDescription": "Built with Next.js 16 and Tailwind. File-based CMS, blog, newsletter, analytics, and admin panel.",
+    "tags": [
+      "Next.js",
+      "TypeScript",
+      "Tailwind",
+      "CMS"
+    ],
+    "image": "",
+    "liveUrl": "",
+    "githubUrl": "https://github.com/mohamedp09",
+    "status": "launched",
+    "featured": false,
+    "date": "2026-03-20",
+    "order": 4
+  }
+]

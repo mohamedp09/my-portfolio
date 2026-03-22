@@ -1,0 +1,86 @@
+{
+  "en": {
+    "nav": {
+      "about": "About",
+      "products": "Products",
+      "projects": "Projects",
+      "blog": "Blog",
+      "contact": "Contact",
+      "getInTouch": "Get in touch"
+    },
+    "projects": {
+      "pageTitle": "Projects",
+      "pageSubtitle": "Things I've built and shipped.",
+      "filterAll": "All",
+      "filterLaunched": "Launched",
+      "filterBuilding": "Building",
+      "filterPlanned": "Planned",
+      "featured": "Featured",
+      "live": "Live",
+      "github": "GitHub",
+      "statusLaunched": "Launched",
+      "statusBuilding": "Building",
+      "statusPlanned": "Planned",
+      "noProjects": "No projects in this category yet."
+    },
+    "newsletter": {
+      "title": "Stay Updated",
+      "subtitle": "Get notified when I ship new products or write new posts.",
+      "placeholder": "you@example.com",
+      "cta": "Subscribe",
+      "success": "You're in!",
+      "already": "You're already subscribed!",
+      "error": "Something went wrong. Try again.",
+      "postCta": "Enjoyed this post? Subscribe to get notified of new ones."
+    },
+    "blog": {
+      "pageTitle": "Blog",
+      "pageSubtitle": "Articles, notes, and product updates.",
+      "noPosts": "No posts yet.",
+      "backHome": "← Back home",
+      "backToBlog": "← Back to blog"
+    }
+  },
+  "ar": {
+    "nav": {
+      "about": "عنّي",
+      "products": "المنتجات",
+      "projects": "المشاريع",
+      "blog": "المدونة",
+      "contact": "اتصل",
+      "getInTouch": "تواصل معنا"
+    },
+    "projects": {
+      "pageTitle": "المشاريع",
+      "pageSubtitle": "ما بنيتُه وأطلقته.",
+      "filterAll": "الكل",
+      "filterLaunched": "مُطلق",
+      "filterBuilding": "قيد البناء",
+      "filterPlanned": "مخطط",
+      "featured": "مميز",
+      "live": "مباشر",
+      "github": "GitHub",
+      "statusLaunched": "مُطلق",
+      "statusBuilding": "قيد البناء",
+      "statusPlanned": "مخطط",
+      "noProjects": "لا توجد مشاريع في هذا التصنيف بعد."
+    },
+    "newsletter": {
+      "title": "ابقَ على اطلاع",
+      "subtitle": "سنُرسل لك إشعاراً عند إطلاق منتجات جديدة أو مقالات.",
+      "placeholder": "بريدك@example.com",
+      "cta": "اشترك",
+      "success": "تم الاشتراك!",
+      "already": "أنت مشترك بالفعل!",
+      "error": "حدث خطأ. حاول مرة أخرى.",
+      "postCta": "أعجبك المقال؟ اشترك ليصلك الجديد."
+    },
+    "blog": {
+      "pageTitle": "المدونة",
+      "pageSubtitle": "مقالات، ملاحظات، وتحديثات.",
+      "noPosts": "لا توجد مقالات بعد.",
+      "backHome": "← العودة للرئيسية",
+      "backToBlog": "← العودة للمدونة"
+    }
+  }
+}

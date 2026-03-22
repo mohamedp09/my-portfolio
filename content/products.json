@@ -1,0 +1,22 @@
+[
+  {
+    "id": "prod-telegram-bot",
+    "emoji": "🤖",
+    "title": "Telegram AI Bot SaaS",
+    "price": "$19",
+    "desc": "Production-ready Telegram bot with AI, SQLite, and a clear path to monetize.",
+    "tags": ["Node.js", "TypeScript", "OpenAI", "SQLite"],
+    "link": "https://mohamedp2.gumroad.com",
+    "order": 0
+  },
+  {
+    "id": "prod-cursor-rules",
+    "emoji": "📐",
+    "title": "Cursor Rules Pack",
+    "price": "$12",
+    "desc": "Curated Cursor rules to ship faster with consistent patterns and better DX.",
+    "tags": ["Cursor AI", "Node.js", "TypeScript", "DX"],
+    "link": "https://mohamedp2.gumroad.com",
+    "order": 1
+  }
+]
