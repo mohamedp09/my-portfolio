@@ -1,7 +1,13 @@
 {
-  "pageViews": {},
-  "dailyViews": {},
-  "referrers": {},
+  "pageViews": {
+    "/": 2
+  },
+  "dailyViews": {
+    "2026-03-25": 2
+  },
+  "referrers": {
+    "direct": 2
+  },
   "countries": {},
   "browsers": {}
 }

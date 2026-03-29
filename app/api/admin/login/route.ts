@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import {
   getSessionCookieOptions,
+  isAdminLoginConfigured,
+  isJwtSecretConfigured,
   SESSION_COOKIE_NAME,
   signToken,
   validateAdminCredentials,
@@ -13,6 +15,28 @@ export async function POST(request: Request) {
     const body = await request.json();
     const username = typeof body.username === "string" ? body.username : "";
     const password = typeof body.password === "string" ? body.password : "";
+
+    if (!isJwtSecretConfigured()) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Server misconfigured: set JWT_SECRET (at least 16 characters) in environment variables.",
+        },
+        { status: 503 }
+      );
+    }
+
+    if (!isAdminLoginConfigured()) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Admin login is not configured: set ADMIN_USERNAME and ADMIN_PASSWORD on the server (or set a password in Account after deploying with a persisted content/ folder).",
+        },
+        { status: 503 }
+      );
+    }
 
     if (!validateAdminCredentials(username, password)) {
       return NextResponse.json({ ok: false, error: "Invalid credentials." }, { status: 401 });

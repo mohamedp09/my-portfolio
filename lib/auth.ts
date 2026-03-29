@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { getAccount, verifyStoredPassword } from "@/lib/account";
+import { getAccount, hasStoredPassword, verifyStoredPassword } from "@/lib/account";
 import { readEnv } from "@/lib/env";
 
 /** Must match `proxy.ts` cookie name */
@@ -67,8 +67,22 @@ export async function requireAdmin(): Promise<{ username: string } | null> {
   }
 }
 
+export function isJwtSecretConfigured(): boolean {
+  const s = readEnv("JWT_SECRET");
+  return Boolean(s && s.length >= 16);
+}
+
+/** True when username is set and a password exists (env or hashed in account.json). */
+export function isAdminLoginConfigured(): boolean {
+  const u = readEnv("ADMIN_USERNAME")?.trim();
+  if (!u) return false;
+  if (hasStoredPassword()) return true;
+  const p = readEnv("ADMIN_PASSWORD");
+  return Boolean(p && p.length > 0);
+}
+
 export function validateAdminCredentials(username: string, password: string): boolean {
-  const u = readEnv("ADMIN_USERNAME");
+  const u = readEnv("ADMIN_USERNAME")?.trim();
   if (!u || username.trim() !== u) return false;
   const acc = getAccount();
   if (acc?.password?.hash && acc?.password?.salt) {

@@ -41,6 +41,11 @@ export function getAllProjects(): Project[] {
   return sortByOrder(readRaw());
 }
 
+/** Promise-based accessor for sitemap and async call sites. */
+export async function getProjects(): Promise<Project[]> {
+  return getAllProjects();
+}
+
 export function getFeaturedProjects(): Project[] {
   return getAllProjects().filter((p) => p.featured);
 }

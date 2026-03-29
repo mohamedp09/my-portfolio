@@ -3,11 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import { getSiteOrigin } from "@/lib/env";
 import { getAllPosts, type Post } from "@/lib/posts";
-import { getProjects as fetchProjects, type Project } from "@/lib/projects";
 
-// ======================
-// 1. التكوين الأساسي
-// ======================
 const IGNORED_DIRS = new Set([
   "api",
   "admin",
@@ -17,14 +13,9 @@ const IGNORED_DIRS = new Set([
   "[...catchAll]",
 ]);
 
-const CONFIG = {
-  appDir: path.join(process.cwd(), "app"),
-  maxUrlsPerSitemap: 50_000,
-} as const;
+const APP_DIR = path.join(process.cwd(), "app");
+const MAX_URLS = 50_000;
 
-// ======================
-// 2. مساعدات المسارات
-// ======================
 type Segment = string;
 
 function isDynamicSegment(segment: Segment): boolean {
@@ -41,13 +32,36 @@ function normalizeSegment(segment: Segment): Segment | null {
   return segment;
 }
 
-function segmentsToPatternKey(segments: Segment[]): string {
-  return segments.join("/");
+function fileToSegments(filePath: string): Segment[] {
+  const relative = path.relative(APP_DIR, path.dirname(filePath));
+  if (!relative || relative === ".") return [];
+  return relative
+    .split(path.sep)
+    .map(normalizeSegment)
+    .filter((s): s is Segment => s !== null && s.length > 0);
 }
 
-// ======================
-// 3. ماسح الصفحات
-// ======================
+let postsCache: Post[] | null = null;
+
+async function getPublishedPosts(): Promise<Post[]> {
+  if (!postsCache) {
+    postsCache = await getAllPosts();
+  }
+  return postsCache;
+}
+
+async function resolveBlogSlugs(): Promise<string[][]> {
+  const posts = await getPublishedPosts();
+  return posts.map((post) => [post.slug]);
+}
+
+async function lastModForBlogSlug(slug: string): Promise<Date> {
+  const posts = await getPublishedPosts();
+  const post = posts.find((p) => p.slug === slug);
+  if (post?.date) return new Date(post.date);
+  return new Date();
+}
+
 async function findPageFiles(dir: string): Promise<string[]> {
   const entries = await fs.readdir(dir, { withFileTypes: true });
   const files: string[] = [];
@@ -64,86 +78,6 @@ async function findPageFiles(dir: string): Promise<string[]> {
   return files;
 }
 
-function fileToSegments(filePath: string): Segment[] {
-  const relative = path.relative(CONFIG.appDir, path.dirname(filePath));
-  if (!relative) return [];
-  return relative
-    .split(path.sep)
-    .map(normalizeSegment)
-    .filter((s): s is Segment => s !== null && s.length > 0);
-}
-
-// ======================
-// 4. حل المسارات الديناميكية
-// ======================
-type DynamicValueSet = string[][];
-
-class DynamicRouteResolver {
-  private static postsCache: Post[] | null = null;
-  private static projectsCache: Project[] | null = null;
-
-  private static async getPosts(): Promise<Post[]> {
-    if (!this.postsCache) {
-      this.postsCache = await getAllPosts();
-    }
-    return this.postsCache;
-  }
-
-  private static async getProjects(): Promise<Project[]> {
-    if (!this.projectsCache) {
-      this.projectsCache = await fetchProjects();
-    }
-    return this.projectsCache;
-  }
-
-  static async resolve(pattern: string): Promise<DynamicValueSet> {
-    if (pattern === "blog/[slug]") {
-      const posts = await this.getPosts();
-      return posts.map((post) => [post.slug]);
-    }
-
-    if (pattern === "admin/projects/edit/[id]") {
-      const projects = await this.getProjects();
-      return projects.map((project) => [String(project.id)]);
-    }
-
-    if (pattern === "admin/posts/edit/[slug]") {
-      const posts = await getAllPosts({ includeDrafts: true });
-      return posts.map((post) => [post.slug]);
-    }
-
-    return [];
-  }
-
-  static async getLastModifiedForPattern(pattern: string, valueRow: string[]): Promise<Date> {
-    if (pattern === "blog/[slug]") {
-      const posts = await this.getPosts();
-      const slug = valueRow[0];
-      const post = posts.find((p) => p.slug === slug);
-      if (post?.date) return new Date(post.date);
-    }
-
-    if (pattern === "admin/projects/edit/[id]") {
-      const projects = await this.getProjects();
-      const id = valueRow[0];
-      const project = projects.find((p) => String(p.id) === id);
-      if (project?.date) return new Date(project.date);
-    }
-
-    if (pattern === "admin/posts/edit/[slug]") {
-      const posts = await getAllPosts({ includeDrafts: true });
-      const slug = valueRow[0];
-      const post = posts.find((p) => p.slug === slug);
-      if (post?.date) return new Date(post.date);
-    }
-
-    return new Date();
-  }
-}
-
-// ======================
-// 5. بناء الروابط
-// ======================
 function buildUrl(baseUrl: string, segments: Segment[], dynamicValues: string[]): string | null {
   let valueIndex = 0;
   const pathParts: string[] = [];
@@ -164,10 +98,10 @@ function buildUrl(baseUrl: string, segments: Segment[], dynamicValues: string[])
   return `${baseUrl}${urlPath}`;
 }
 
-// ======================
-// 6. توسيع صفحة واحدة إلى روابط متعددة
-// ======================
-async function expandPageToEntries(pageFile: string, baseUrl: string): Promise<MetadataRoute.Sitemap> {
+async function expandPageToEntries(
+  pageFile: string,
+  baseUrl: string
+): Promise<MetadataRoute.Sitemap> {
   const segments = fileToSegments(pageFile);
   const hasDynamic =
     segments.some(isDynamicSegment) || segments.some(isOptionalCatchAll);
@@ -178,33 +112,34 @@ async function expandPageToEntries(pageFile: string, baseUrl: string): Promise<M
     return [{ url, lastModified: new Date() }];
   }
 
-  const pattern = segmentsToPatternKey(segments);
-  const valueSets = await DynamicRouteResolver.resolve(pattern);
+  const pattern = segments.join("/");
+  if (pattern !== "blog/[slug]") {
+    return [];
+  }
+
+  const valueSets = await resolveBlogSlugs();
   if (valueSets.length === 0) return [];
 
   const entries: MetadataRoute.Sitemap = [];
   for (const valueRow of valueSets) {
     const url = buildUrl(baseUrl, segments, valueRow);
     if (!url) continue;
-    const lastModified = await DynamicRouteResolver.getLastModifiedForPattern(pattern, valueRow);
+    const slug = valueRow[0];
+    const lastModified = slug ? await lastModForBlogSlug(slug) : new Date();
     entries.push({ url, lastModified });
   }
   return entries;
 }
 
-// ======================
-// 7. الوظيفة الرئيسية
-// ======================
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getSiteOrigin();
-  const cap = CONFIG.maxUrlsPerSitemap;
 
   try {
-    const pageFiles = await findPageFiles(CONFIG.appDir);
+    const pageFiles = await findPageFiles(APP_DIR);
 
     const allEntriesArrays = await Promise.all(
       pageFiles.map((file) =>
-        expandPageToEntries(file, baseUrl).catch(() => [] as MetadataRoute.Sitemap)
+        expandPageToEntries(file, baseUrl).catch((): MetadataRoute.Sitemap => [])
       )
     );
 
@@ -218,8 +153,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     let unique = Array.from(uniqueMap.values());
     unique.sort((a, b) => a.url.localeCompare(b.url));
 
-    if (unique.length > cap) {
-      unique = unique.slice(0, cap);
+    if (unique.length > MAX_URLS) {
+      unique = unique.slice(0, MAX_URLS);
     }
 
     return unique;
