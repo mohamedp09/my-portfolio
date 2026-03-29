@@ -1,20 +1,25 @@
-
-// app/sitemap.ts
-import { MetadataRoute } from 'next';
-import fs from 'fs/promises';
-import path from 'path';
-import { getAllPosts, Post } from '@/lib/posts';
-import { getProjects, Project } from '@/lib/projects';
+import type { MetadataRoute } from "next";
+import fs from "fs/promises";
+import path from "path";
+import { getSiteOrigin } from "@/lib/env";
+import { getAllPosts, type Post } from "@/lib/posts";
+import { getProjects as fetchProjects, type Project } from "@/lib/projects";
 
 // ======================
 // 1. التكوين الأساسي
 // ======================
+const IGNORED_DIRS = new Set([
+  "api",
+  "admin",
+  "_components",
+  "_lib",
+  "_hooks",
+  "[...catchAll]",
+]);
+
 const CONFIG = {
-  baseUrl: 'https://mohamedbuilds.org',
-  appDir: path.join(process.cwd(), 'app'),
-  ignoredDirectories: ['api', '_components', '_lib', '_hooks', '[...catchAll]'],
-  // أقصى عدد من الروابط في خريطة واحدة (لـ sitemap splitting)
-  maxUrlsPerSitemap: 50000,
+  appDir: path.join(process.cwd(), "app"),
+  maxUrlsPerSitemap: 50_000,
 } as const;
 
 // ======================
@@ -31,15 +36,13 @@ function isOptionalCatchAll(segment: Segment): boolean {
 }
 
 function normalizeSegment(segment: Segment): Segment | null {
-  // تجاهل مسارات المجموعات (group routes)
-  if (segment.startsWith('(') && segment.endsWith(')')) return null;
-  // تجاهل مسارات الـ interceptors (مثلاً (.)profile)
-  if (segment.startsWith('(') && segment.includes(')')) return null;
+  if (segment.startsWith("(") && segment.endsWith(")")) return null;
+  if (segment.startsWith("(") && segment.includes(")")) return null;
   return segment;
 }
 
 function segmentsToPatternKey(segments: Segment[]): string {
-  return segments.join('/');
+  return segments.join("/");
 }
 
 // ======================
@@ -52,9 +55,9 @@ async function findPageFiles(dir: string): Promise<string[]> {
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (CONFIG.ignoredDirectories.includes(entry.name)) continue;
+      if (IGNORED_DIRS.has(entry.name)) continue;
       files.push(...(await findPageFiles(fullPath)));
-    } else if (entry.name === 'page.tsx' || entry.name === 'page.jsx') {
+    } else if (entry.name === "page.tsx" || entry.name === "page.jsx") {
       files.push(fullPath);
     }
   }
@@ -71,9 +74,9 @@ function fileToSegments(filePath: string): Segment[] {
 }
 
 // ======================
-// 4. حل المسارات الديناميكية مع التخزين المؤقت
+// 4. حل المسارات الديناميكية
 // ======================
-type DynamicValueSet = string[][]; // كل مصفوفة داخلية تمثل قيم المسارات الديناميكية بالترتيب
+type DynamicValueSet = string[][];
 
 class DynamicRouteResolver {
   private static postsCache: Post[] | null = null;
@@ -81,82 +84,73 @@ class DynamicRouteResolver {
 
   private static async getPosts(): Promise<Post[]> {
     if (!this.postsCache) {
-      this.postsCache = await getAllPosts({ includeDrafts: true });
+      this.postsCache = await getAllPosts();
     }
     return this.postsCache;
   }
 
   private static async getProjects(): Promise<Project[]> {
     if (!this.projectsCache) {
-      this.projectsCache = await getProjects();
+      this.projectsCache = await fetchProjects();
     }
     return this.projectsCache;
   }
 
   static async resolve(pattern: string): Promise<DynamicValueSet> {
-    // blog/[slug]
-    if (pattern === 'blog/[slug]') {
+    if (pattern === "blog/[slug]") {
       const posts = await this.getPosts();
-      return posts.map(post => [post.slug]);
+      return posts.map((post) => [post.slug]);
     }
 
-    // admin/projects/edit/[id]
-    if (pattern === 'admin/projects/edit/[id]') {
+    if (pattern === "admin/projects/edit/[id]") {
       const projects = await this.getProjects();
-      return projects.map(project => [String(project.id)]);
+      return projects.map((project) => [String(project.id)]);
     }
 
-    // admin/posts/edit/[slug]
-    if (pattern === 'admin/posts/edit/[slug]') {
-      const posts = await this.getPosts();
-      return posts.map(post => [post.slug]);
+    if (pattern === "admin/posts/edit/[slug]") {
+      const posts = await getAllPosts({ includeDrafts: true });
+      return posts.map((post) => [post.slug]);
     }
 
-    // يمكن إضافة أنماط أخرى هنا (مثلاً: products/[category]/[id])
-
-    return []; // لا توجد بيانات لهذا النمط
+    return [];
   }
 
   static async getLastModifiedForPattern(pattern: string, valueRow: string[]): Promise<Date> {
-    // هنا يمكن استرجاع تاريخ آخر تعديل بناءً على النمط والقيم
-    // مثلاً للمقالات: نبحث عن آخر تاريخ تحديث للمقالة نفسها
-    if (pattern === 'blog/[slug]') {
+    if (pattern === "blog/[slug]") {
       const posts = await this.getPosts();
       const slug = valueRow[0];
-      const post = posts.find(p => p.slug === slug);
-      if (post?.updatedAt) return new Date(post.updatedAt);
+      const post = posts.find((p) => p.slug === slug);
       if (post?.date) return new Date(post.date);
     }
 
-if (pattern === 'admin/projects/edit/[id]') {
+    if (pattern === "admin/projects/edit/[id]") {
       const projects = await this.getProjects();
       const id = valueRow[0];
-      const project = projects.find(p => String(p.id) === id);
-      if (project?.updatedAt) return new Date(project.updatedAt);
+      const project = projects.find((p) => String(p.id) === id);
+      if (project?.date) return new Date(project.date);
     }
 
-    if (pattern === 'admin/posts/edit/[slug]') {
-      const posts = await this.getPosts();
+    if (pattern === "admin/posts/edit/[slug]") {
+      const posts = await getAllPosts({ includeDrafts: true });
       const slug = valueRow[0];
-      const post = posts.find(p => p.slug === slug);
-      if (post?.updatedAt) return new Date(post.updatedAt);
+      const post = posts.find((p) => p.slug === slug);
+      if (post?.date) return new Date(post.date);
     }
 
-    return new Date(); // fallback
+    return new Date();
   }
 }
 
 // ======================
 // 5. بناء الروابط
 // ======================
-function buildUrl(segments: Segment[], dynamicValues: string[]): string | null {
+function buildUrl(baseUrl: string, segments: Segment[], dynamicValues: string[]): string | null {
   let valueIndex = 0;
   const pathParts: string[] = [];
 
   for (const seg of segments) {
     if (isDynamicSegment(seg) || isOptionalCatchAll(seg)) {
       if (valueIndex >= dynamicValues.length) return null;
-      // تجاهل القيم الفارغة للمسارات الاختيارية
       const value = dynamicValues[valueIndex++];
       if (!value && isOptionalCatchAll(seg)) continue;
       pathParts.push(encodeURIComponent(value));
@@ -166,32 +160,31 @@ function buildUrl(segments: Segment[], dynamicValues: string[]): string | null {
   }
 
   if (valueIndex !== dynamicValues.length) return null;
-  const urlPath = pathParts.length ? /${pathParts.join('/')} : '';
-  return ${CONFIG.baseUrl}${urlPath};
+  const urlPath = pathParts.length ? `/${pathParts.join("/")}` : "";
+  return `${baseUrl}${urlPath}`;
 }
 
 // ======================
 // 6. توسيع صفحة واحدة إلى روابط متعددة
 // ======================
-async function expandPageToEntries(pageFile: string): Promise<MetadataRoute.Sitemap> {
+async function expandPageToEntries(pageFile: string, baseUrl: string): Promise<MetadataRoute.Sitemap> {
   const segments = fileToSegments(pageFile);
-  const hasDynamic = segments.some(isDynamicSegment) || segments.some(isOptionalCatchAll);
+  const hasDynamic =
+    segments.some(isDynamicSegment) || segments.some(isOptionalCatchAll);
 
-  // صفحة ثابتة
   if (!hasDynamic) {
-    const url = buildUrl(segments, []);
+    const url = buildUrl(baseUrl, segments, []);
     if (!url) return [];
     return [{ url, lastModified: new Date() }];
   }
 
-  // صفحة ديناميكية
   const pattern = segmentsToPatternKey(segments);
   const valueSets = await DynamicRouteResolver.resolve(pattern);
   if (valueSets.length === 0) return [];
 
   const entries: MetadataRoute.Sitemap = [];
   for (const valueRow of valueSets) {
-    const url = buildUrl(segments, valueRow);
+    const url = buildUrl(baseUrl, segments, valueRow);
     if (!url) continue;
     const lastModified = await DynamicRouteResolver.getLastModifiedForPattern(pattern, valueRow);
     entries.push({ url, lastModified });
@@ -200,43 +193,37 @@ async function expandPageToEntries(pageFile: string): Promise<MetadataRoute.Site
 }
 
 // ======================
-// 7. الوظيفة الرئيسية (توليد sitemap.xml)
+// 7. الوظيفة الرئيسية
 // ======================
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const startTime = Date.now();
-  console.log('[sitemap] Generating sitemap...');
+  const baseUrl = getSiteOrigin();
+  const cap = CONFIG.maxUrlsPerSitemap;
 
   try {
     const pageFiles = await findPageFiles(CONFIG.appDir);
-    console.log(`[sitemap] Found ${pageFiles.length} page files`);
 
-    // معالجة الصفحات بالتوازي لتحسين الأداء
     const allEntriesArrays = await Promise.all(
-      pageFiles.map(file => expandPageToEntries(file).catch(err => {
-        console.error(`[sitemap] Error expanding ${file}:`, err);
-        return [] as MetadataRoute.Sitemap;
-      }))
+      pageFiles.map((file) =>
+        expandPageToEntries(file, baseUrl).catch(() => [] as MetadataRoute.Sitemap)
+      )
     );
 
     const merged = allEntriesArrays.flat();
-
-    // إزالة التكرار (باستخدام Map للحفاظ على الترتيب)
     const uniqueMap = new Map<string, MetadataRoute.Sitemap[number]>();
     for (const entry of merged) {
       if (!uniqueMap.has(entry.url)) {
         uniqueMap.set(entry.url, entry);
       }
     }
-    const unique = Array.from(uniqueMap.values());
-
-    // ترتيب الروابط أبجدياً
+    let unique = Array.from(uniqueMap.values());
     unique.sort((a, b) => a.url.localeCompare(b.url));
 
-    console.log(`[sitemap] Generated ${unique.length} unique URLs in ${Date.now() - startTime}ms`);
+    if (unique.length > cap) {
+      unique = unique.slice(0, cap);
+    }
+
     return unique;
-  } catch (error) {
-    console.error('[sitemap] Fatal error:', error);
-    // في حالة الفشل الكامل، نعيد خريطة فارغة حتى لا يتعطل الموقع
+  } catch {
     return [];
   }
 }
